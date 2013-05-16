@@ -14,6 +14,9 @@ from planegraphs import set_copy
 from itertools import combinations, ifilter
 
 
+
+# constant
+UNDETERMINED = 3
 #-------------------------------------------------------------------------------
 # Witness generation
 #-------------------------------------------------------------------------------
@@ -24,33 +27,32 @@ Operation_Codes = {'K4':'A complete graph on 4 vertices',
                    'K3 Free':'The graph is trangle free',
                    'NOTP':'The graph is not planar',
                    'MAXP':'maximal planar graph',
-                   'E':'A contraction due to a simple non-edge is implicit identity'
+                   'E':'A contraction due to a simple non-edge is implicit identity',
+                   'SYM': ' contraction due to symmetric vertices'
                     }
 
-opcodes = list(Operation_Codes.keys())
-UNDETERMINED = 3
+
+
 
 
 def decode_operation(O, prefix = '', recursive_level = 1):
-    if prefix != '': prefix = '  ' * recursive_level + prefix + ' '
-    op = opcodes[O[0]]
+
+    if prefix != '':
+        prefix = '  ' * recursive_level + prefix + ' '
+
+    op = O[0]
     if op == 'K4':
-        return prefix + 'Q.E.D. K4 ' + str(O[1])
+        return prefix + 'Q.E.D. K4 ' + str(O[1]) + '\n'
     elif op == 'K112':
-        return prefix + 'K112 ' + str(sorted(O[1])) + ' ' + str(sorted(O[2])) + ' ' + str(sorted(O[3])) + ' ' + str(
-            sorted(O[4])) + '\n'
+        return prefix + 'K112 ' + str(sorted(O[1])) + '\n'
+    elif op == 'SYM':
+        return prefix + 'SYM ' + str(sorted(O[1])) + '\n'
     elif op == 'T31':
-        return prefix + 'T31 ' + str(sorted(O[1])) + ' ' + str(
-            sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3], 'SUBT31',
-                                                                                      recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
+        return prefix + 'T31 ' + str(sorted(O[1])) + ' ' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3], 'SUBT31', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
     elif op == 'C4':
-        return prefix + 'C4 ' + str(sorted(O[1])) + ' ' + str(
-            sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3], 'SUBC4',
-                                                                                      recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
+        return prefix + 'C4 ' + str(sorted(O[1])) + ' ' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3], 'SUBC4', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
     elif op == 'E':
-        return prefix + 'E ' + str(sorted(O[1])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3],
-                                                                                                             'SUBE',
-                                                                                                             recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
+        return prefix + 'E ' + str(sorted(O[1])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3], 'SUBE', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
     elif op == 'K3 Free':
         return prefix + 'Triangle free planar graph.\n Q.E.D.' + '\n'
     elif op == 'NOTP':
@@ -93,27 +95,13 @@ def find_T31(G):
     N = G.neighbors
     V = G.vertices
     for x in sorted(V, key = G.degree, reverse = True):
-    # for x in V:
-        # for w in V - N[x] - {x}:
         for w in sorted(V - N[x] - {x}, key = lambda v: len(N[x] ^ N[v]), reverse = True):
             for y in N[x] - {w}:
                 for z in N[x] & N[y] & N[w]:
                     yield (x, y, z, w)
 
 
-def find_C4(G):
-    """ iterate over C4 subgraph $C_4$
-    """
-    N = G.neighbors
-    V = G.vertices
-    # for x in sorted(V, key = G.degree, reverse = True):
-    for x in V:
-        for y in N[x]:
-            for z in N[y] - N[x] - {x}:
-                for w in (N[x] & N[z]) - N[y]:
-                    yield (x, y, z, w)
-
-
+# alternative version
 def T31_iterator(G):
     """ iterate over tadpole subgraphs $T_{3,1}$
     """
@@ -122,6 +110,18 @@ def T31_iterator(G):
         for w in N[z] - {x, y} - N[x] - N[y]: yield x, y, z, w
         for w in N[y] - {x, z} - N[x] - N[x]: yield x, z, y, w
         for w in N[x] - {y, z} - N[y] - N[z]: yield z, y, x, w
+
+
+def find_C4(G):
+    """ iterate over C4 subgraph $C_4$
+    """
+    N = G.neighbors
+    V = G.vertices
+    for x in V:
+        for y in N[x]:
+            for z in N[y] - N[x] - {x}:
+                for w in (N[x] & N[z]) - N[y]:
+                    yield (x, y, z, w)
 
 
 def find_K112(G):
@@ -136,15 +136,15 @@ def find_K112(G):
 
 
 def K112(x, y, z, w, G, P):
-    # x, y, z, w = K112
-    if {z, w} in G.edges:
-        P['QED'] = [0, (x, y, z, w), len(P)]
-        return 0, G, P
-    z, w = (z, w) if z < w else (w, z)
-    # P[max(z, w)] = (1, (z, w), (x, w), (y, w), K112, len(P))
-    P[w] = (1, (z, w), (x, w), (y, w), (x, y, z, w), len(P))
-    G.contract(z, w)  # also deletes vertex w
 
+    if {z, w} in G.edges:
+        # there is a K4 subgraph
+        P['QED'] = ['K4', (x, y, z, w), len(P)]
+        return 0, G, P
+
+    z, w = (z, w) if z < w else (w, z)
+    P[w] = ('K112', (z, w), len(P))
+    G.contract(z, w)  # also deletes vertex w
     return 1, G, P
 
 
@@ -168,10 +168,9 @@ def solve_T31(G, P, alpha, test_fun):
         H.contract(x, w)
         Q, H, Pr = test_fun(H, alpha)
         if not Q:
-            P[max(y, w)] = (2, (w, y), (x, y, z, w), Pr, len(P))
+            P[max(y, w)] = ('T31', (w, y), (x, y, z, w), Pr, len(P))
             G.contract(min(y, w), max(y, w))
             return True, G, P
-
 
     return False, G, P
 
@@ -191,20 +190,23 @@ def find_non_edgeOLD(G):
 
 
 def find_symmetric_vertices(G, P):
+    """
+    An improved heuristic: if some vertex y subsumes the neighborhood of another vertex x
+    it is safe, for the 3-colorability, to contract them. 
+    """
     N = G.neighbors
     V = G.vertices
     for x, y in combinations(V, 2):
         if N[x] <= N[y] or N[y] <= N[x]:
-            P[max(x, y)] = (2, (x, y), None, len(P))
+            P[max(x, y)] = ('SYM', (x, y), None, len(P))
             G.contract(min(x, y), max(x, y))
-            # print "simetric vertices"
             return True, G, P
 
     return False, G, P
 
 
 def find_non_edge(G):
-    """ iterate over non-edges
+    """ iterate over non-edges in order, try the contractions that create more new edges first.
     """
     N = G.neighbors
     V = G.vertices
@@ -213,16 +215,20 @@ def find_non_edge(G):
 
 
 
-
-
 def solve_non_edge(G, P, alpha):
+    """
+    Two possible choices: 
+    a) try a vertex contraction. If it fails, add a new edge. Or
+    b) Try adding a new edge. If it fails, contract the vertices.
+    
+    """
     for e in find_non_edge(G):
         H = G.copy()
         x, y = min(e), max(e)
         H.contract(x, y)
         Q, H, Pr = is_3colorable(H, alpha)
         if not Q:
-            P[(x, y)] = [opcodes.index('E'), (x, y), None, Pr, len(P)]
+            P[(x, y)] = ['E', (x, y), None, Pr, len(P)]
             G.add_edge(x, y)
             return True, G, P
 
@@ -230,7 +236,7 @@ def solve_non_edge(G, P, alpha):
 
 
 def basic_tests(G, planar_test = True, triangle_test = True):
-    # request for a planargraph
+    # request for a planar graph
     if planar_test:
         if not G.is_planar():  return 0, G, {'QED': [5, 'G is not planar', 0]}
 
@@ -242,6 +248,9 @@ def basic_tests(G, planar_test = True, triangle_test = True):
 
 
 def is_3colorable_plane(G, alpha = 1, planar_test = True, triangle_test = True):
+    """
+    Attempts to find a 3-uncolorability certificate for a planar graph
+    """
     if planar_test or triangle_test:
         Q, G, P = basic_tests(G, planar_test, triangle_test)
         if Q is not None:
@@ -265,21 +274,20 @@ def is_3colorable_plane(G, alpha = 1, planar_test = True, triangle_test = True):
 
 
 def is_3colorable(G, alpha = 1):
+    """
+    Attempts to find a 3-uncolorability certificate for graph
+    """
     P = dict()
     N = G.order() + 1
-    # if alpha >= 2:  print("\t"*(5 - alpha) * 2, "init is_3colorable", "alpha", alpha)
-    # N0 = len(G.edges)
     while G.order() < N:
         N = G.order()
-        # if alpha >= 2 : print("\t"*(5 - alpha) * 2, "advance of alpha:", alpha, (1.0 - (G.size() / float(N0))) * 100)
         Q, G, P = solve_K112(G, P)
         if not Q: return 0, G, P
-        Q, G = find_symmetric_vertices(G)
+        Q, G, P = find_symmetric_vertices(G)
         if Q: continue
         if G.order() <= 3: return 1, G, P
         if alpha:
             # Q, G, P = solve_T31(G, P, alpha - 1, is_3colorable)
-            # if not Q:
             Q, G, P = solve_non_edge(G, P, alpha - 1)
             if Q or G.order() < N: continue
             else: break
@@ -289,6 +297,10 @@ def is_3colorable(G, alpha = 1):
 #-----------------------------------------------------------------------------------------------
 
 def planar_3COL(G, alpha = 1):
+    """
+    Tries to find a 3-coloring of a planar graph G.
+    """
+
     Q, H, P = is_3colorable_plane(G.copy(), alpha, planar_test = True, triangle_test = True)
     if Q in (0, 2): return Q, G, P
     if Q == 1: return 1, H, P
@@ -327,13 +339,15 @@ def planar_3COL(G, alpha = 1):
 #-----------------------------------------------------------------------------------------------
 
 def general_3COL(G, alpha = 1):
+    """
+    Tries to find a 3-coloring of a graph G.
+    """
     Q, G, P = is_3colorable(G, alpha)
     if Q in (0, 1): return Q, G, P
     G_out = G.copy()
-    # print "no 3-uncolorability proof found"
-    # print "starting 3-coloring..."
+
     u = max(G.vertices, key = G.degree)
-    N0 = G.order()
+
 
     while G.degree(u) < G.order() - 1:
 
@@ -350,8 +364,6 @@ def general_3COL(G, alpha = 1):
             G.add_edge(u, v)
 
         if G.order() <= 3: return 1, G, dict()
-
-        # print "advance", (1.0 - (G.order() / float(N0))) * 100
 
         u = max(G.vertices, key = G.degree)
 
