@@ -10,9 +10,8 @@
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
 from coloring_tools import is_2colorable
-from planegraphs import set_copy
-from itertools import combinations, ifilter
-
+# from planegraphs import set_copy
+from itertools import combinations
 
 
 # constant
@@ -20,18 +19,16 @@ UNDETERMINED = 3
 #-------------------------------------------------------------------------------
 # Witness generation
 #-------------------------------------------------------------------------------
-Operation_Codes = {'K4':'A complete graph on 4 vertices',
-                   'K112':'A diamond graph',
-                   'T31':'A T_{31} sub graph',
-                   'C4':'a square subraph, a cycle of length four',
-                   'K3 Free':'The graph is trangle free',
-                   'NOTP':'The graph is not planar',
-                   'MAXP':'maximal planar graph',
-                   'E':'A contraction due to a simple non-edge is implicit identity',
+Operation_Codes = {'K4': 'A complete graph on 4 vertices',
+                   'K112': 'A diamond graph',
+                   'T31': 'A T_{31} sub graph',
+                   'C4': 'a square subraph, a cycle of length four',
+                   'K3 Free': 'The graph is trangle free',
+                   'NOTP': 'The graph is not planar',
+                   'MAXP': 'maximal planar graph',
+                   'E': 'A contraction due to a simple non-edge is implicit identity',
                    'SYM': ' contraction due to symmetric vertices'
                     }
-
-
 
 
 
@@ -192,7 +189,7 @@ def find_non_edgeOLD(G):
 def find_symmetric_vertices(G, P):
     """
     An improved heuristic: if some vertex y subsumes the neighborhood of another vertex x
-    it is safe, for the 3-colorability, to contract them. 
+    it is safe, for the 3-colorability test, to contract them. 
     """
     N = G.neighbors
     V = G.vertices
@@ -264,7 +261,7 @@ def is_3colorable_plane(G, alpha = 1, planar_test = True, triangle_test = True):
 
         Q, G, P = solve_K112(G, P)
         if not Q: return 0, G, P
-        Q, G = find_symmetric_vertices(G)
+        Q, G, P = find_symmetric_vertices(G, P)
         if Q: continue
         if G.order() <= 3: return 1, G, P
         if alpha:
@@ -283,7 +280,7 @@ def is_3colorable(G, alpha = 1):
         N = G.order()
         Q, G, P = solve_K112(G, P)
         if not Q: return 0, G, P
-        Q, G, P = find_symmetric_vertices(G)
+        Q, G, P = find_symmetric_vertices(G, P)
         if Q: continue
         if G.order() <= 3: return 1, G, P
         if alpha:
