@@ -172,7 +172,7 @@ def solve_T31(G, P, alpha, test_fun):
     return False, G, P
 
 
-def find_non_edgeOLD(G):
+def find_non_edge(G):
     """ iterate over at least P4 subgraphs $P_4$
     """
     N = G.neighbors
@@ -202,7 +202,7 @@ def find_symmetric_vertices(G, P):
     return False, G, P
 
 
-def find_non_edge(G):
+def find_non_edgeOLD(G):
     """ iterate over non-edges in order, try the contractions that create more new edges first.
     """
     N = G.neighbors
@@ -212,7 +212,7 @@ def find_non_edge(G):
 
 
 
-def solve_non_edge(G, P, alpha):
+def solve_non_edge2(G, P, alpha):
     """
     Two possible choices: 
     a) try a vertex contraction. If it fails, add a new edge. Or
@@ -228,6 +228,26 @@ def solve_non_edge(G, P, alpha):
             P[(x, y)] = ['E', (x, y), None, Pr, len(P)]
             G.add_edge(x, y)
             return True, G, P
+
+    return False, G, P
+
+
+def solve_non_edge(G, P, alpha):
+    """
+    Two possible choices: 
+    a) try a vertex contraction. If it fails, add a new edge. Or
+    b) Try adding a new edge. If it fails, contract the vertices.
+    
+    """
+    for e in find_non_edge(G):
+        H = G.copy()
+        x, y = min(e), max(e)
+        H.add_edge(x, y)
+        Q, H, Pr = is_3colorable(H, alpha)
+        if not Q:
+            P[(x, y)] = ['E', (x, y), None, Pr, len(P)]
+            H.contract(x, y)
+            return True, H, P
 
     return False, G, P
 
@@ -261,8 +281,8 @@ def is_3colorable_plane(G, alpha = 1, planar_test = True, triangle_test = True):
 
         Q, G, P = solve_K112(G, P)
         if not Q: return 0, G, P
-        Q, G, P = find_symmetric_vertices(G, P)
-        if Q: continue
+        # Q, G, P = find_symmetric_vertices(G, P)
+        # if Q: continue
         if G.order() <= 3: return 1, G, P
         if alpha:
             Q, G, P = solve_T31(G, P, alpha - 1, is_3colorable_plane)
@@ -284,10 +304,11 @@ def is_3colorable(G, alpha = 1):
         if Q: continue
         if G.order() <= 3: return 1, G, P
         if alpha:
-            # Q, G, P = solve_T31(G, P, alpha - 1, is_3colorable)
-            Q, G, P = solve_non_edge(G, P, alpha - 1)
+            Q, G, P = solve_T31(G, P, alpha - 1, is_3colorable)
             if Q or G.order() < N: continue
-            else: break
+            Q, G, P = solve_non_edge(G, P, alpha - 1)
+            # if Q or G.order() < N: continue
+            # else: break
 
     return UNDETERMINED, G, P
 
