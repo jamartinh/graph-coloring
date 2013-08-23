@@ -22,7 +22,7 @@ A clause is represented as a list of integers from 1 to N
 where 1 means the variable x_1 and -1 means the negation of variable x_1,
 e.g. [-1,2,-4] is (not x_1, x_2, not x_4)
 
-to copy an instance use map(list,instance) to obtaon a fast deepcopy
+to copy an instance use map(list,instance) to obtain a fast deepcopy
 
 """
 

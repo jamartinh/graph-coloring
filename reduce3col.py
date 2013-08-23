@@ -27,7 +27,7 @@ Operation_Codes = {'K4': 'A complete graph on 4 vertices',
                    'NOTP': 'The graph is not planar',
                    'MAXP': 'maximal planar graph',
                    'E': 'A contraction due to a simple non-edge is implicit identity',
-                   'SYM': ' contraction due to symmetric vertices'
+                   'SYM': ' contraction due to a vertex neighborhood subsumtion'
                     }
 
 
@@ -39,17 +39,17 @@ def decode_operation(O, prefix = '', recursive_level = 1):
 
     op = O[0]
     if op == 'K4':
-        return prefix + 'Q.E.D. K4 ' + str(O[1]) + '\n'
+        return prefix + 'K4 ' + str(O[1]) + '\n' + prefix + 'Q.E.D.'
     elif op == 'K112':
-        return prefix + 'K112 ' + str(sorted(O[1])) + '\n'
+        return prefix + 'K112 ' + str(tuple(sorted(O[1]))) + '\n'
     elif op == 'SYM':
-        return prefix + 'SYM ' + str(sorted(O[1])) + '\n'
+        return prefix + 'SYM ' + str(tuple(sorted(O[1]))) + '\n'
     elif op == 'T31':
-        return prefix + 'T31 ' + str(sorted(O[1])) + ' ' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3], 'SUBT31', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
+        return prefix + 'T31 ' + str(tuple(sorted(O[1]))) + ' ;' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN SUB T31\n' + '  ' * (recursive_level + 1) + 'TRY CONTRACTION ' + (O[2][0], O[2][3]) + '\n' + UNCOL_witness(O[3], ' ', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
     elif op == 'C4':
-        return prefix + 'C4 ' + str(sorted(O[1])) + ' ' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3], 'SUBC4', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
+        return prefix + 'C4: ' + str(sorted(O[1])) + ' ' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN SUB C4\n' + UNCOL_witness(O[3], ' ', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
     elif op == 'E':
-        return prefix + 'E ' + str(sorted(O[1])) + '\n' + '  ' * recursive_level + 'BEGIN\n' + UNCOL_witness(O[3], 'SUBE', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
+        return prefix + 'E ' + str(tuple(sorted(O[1]))) + '\n' + '  ' * recursive_level + 'BEGIN SUB E\n' + '  ' * (recursive_level + 1) + 'TRY NEW EDGE ' + str(tuple(sorted(O[1]))) + '\n' + UNCOL_witness(O[3], ' ', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
     elif op == 'K3 Free':
         return prefix + 'Triangle free planar graph.\n Q.E.D.' + '\n'
     elif op == 'NOTP':
@@ -172,20 +172,8 @@ def solve_T31(G, P, alpha, test_fun):
     return False, G, P
 
 
-def find_non_edge(G):
-    """ iterate over at least P4 subgraphs $P_4$
-    """
-    N = G.neighbors
-    V = G.vertices
-    for x in sorted(V, key = G.degree, reverse = True):
-    # for x in sorted(V, key = G.degree, reverse = True):
-        for y in N[x]:
-            for z in sorted(N[y] - N[x] - {x}, key = lambda v: len(N[x] & N[v]),
-                            reverse = False):  # max common vertices, (N[x] | N[y])
-                yield (x, z)
 
-
-
+# too slow to be useful
 def find_symmetric_vertices(G, P):
     """
     An improved heuristic: if some vertex y subsumes the neighborhood of another vertex x
@@ -202,13 +190,18 @@ def find_symmetric_vertices(G, P):
     return False, G, P
 
 
-def find_non_edgeOLD(G):
-    """ iterate over non-edges in order, try the contractions that create more new edges first.
+def find_non_edge(G):
+    """ iterate over at least P4 subgraphs $P_4$
     """
     N = G.neighbors
     V = G.vertices
-    for x, y in sorted(set(combinations(V, 2)) - G.edges, key = lambda v: len(N[v[0]] ^ N[v[1]]), reverse = True):
-        yield (x, y)
+    for x in sorted(V, key = G.degree, reverse = True):
+    # for x in sorted(V, key = G.degree, reverse = True):
+        for y in N[x]:
+            for z in sorted(N[y] - N[x] - {x}, key = lambda v: len(N[x] & N[v]),
+                            reverse = False):  # max common vertices, (N[x] | N[y])
+                yield (x, z)
+
 
 
 
@@ -300,8 +293,8 @@ def is_3colorable(G, alpha = 1):
         N = G.order()
         Q, G, P = solve_K112(G, P)
         if not Q: return 0, G, P
-        Q, G, P = find_symmetric_vertices(G, P)
-        if Q: continue
+        # Q, G, P = find_symmetric_vertices(G, P)
+        # if Q: continue
         if G.order() <= 3: return 1, G, P
         if alpha:
             Q, G, P = solve_T31(G, P, alpha - 1, is_3colorable)

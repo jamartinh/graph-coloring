@@ -4,7 +4,7 @@
 # are made available under the terms of the GNU Public License v3.0
 # which accompanies this distribution, and is available at
 # http://www.gnu.org/licenses/gpl.html
-# 
+#
 # Contributors:
 #     Jose Antonio Martin H. (jamartinh@fdi.ucm.es) - initial API and implementation
 #-------------------------------------------------------------------------------
@@ -57,7 +57,18 @@ def save_witness(grpindex, colorable, witness, path = "", file_prefix = 'planar_
     str_tex += "file: " + file_prefix + grpindex + ".col.txt \n"
     str_tex += '3-colorable: ' + str(colorable) + '\n'
     if colorable: str_tex += "A 3-coloring defined as three independent sets 1, 2, 3. \n"
-    else:         str_tex += "A 3-uncoloring defined as a sequence of vertex identifications. \n"
+    else:         str_tex += 'A 3-uncoloring defined as a sequence of vertex identifications.\n'
+
+    utl = """
+****************************************************************************************************
+* A 3-uncoloring defined as a sequence of vertex identifications.                                  *
+* G/(x,y) is a vertex contraction.                                                                 *
+* G+(x,y) is an edge addition.                                                                     *
+* K112:   G/(x,y) due to a diamond subgraph.                                                       *
+* T31:    G/(x,y) due to a failed contraction in a tadpole subgraph that unavoidably lead to a K4. *
+* E:      G/(x,y) due to a failed edge adition that unavoidably lead to a K4.\n                    *
+****************************************************************************************************
+"""
 
     f.write(str_tex)
     f.write(witness)
