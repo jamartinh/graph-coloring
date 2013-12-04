@@ -11,7 +11,7 @@
 #!/usr/bin/env python
 from collections import defaultdict, deque
 from copy import deepcopy
-from itertools import combinations, izip, tee, count
+from itertools import combinations, tee, count
 import itertools
 import random
 # if c++ planarity (Boyer) is available uses it, otherwise use
@@ -20,11 +20,11 @@ try:
     from planartest import is_planar
     # import raise_error
     # from nxtools import planarity
-    print "using c++ planarity library"
+    print ("using c++ planarity library")
     # is_planar = lambda G, dummy: planarity.is_planar(G.neighbors)
 except ImportError:
     from planarity_test import is_planar
-    print "using pure python planarity_test"
+    print ("using pure python planarity_test")
 
 
 
@@ -50,13 +50,13 @@ def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = tee(iterable)
     next(b, None)
-    return izip(a, b)
+    return zip(a, b)
 
 def probabilistic_choice(iterable, probabilities):
     "random selection from a probability planar_density function"
     rnd_test = random.random()
     p_sum = 0.0
-    for i, p in izip(iterable, probabilities):
+    for i, p in zip(iterable, probabilities):
         if rnd_test <= p + p_sum:
             return i
         p_sum += p
@@ -346,7 +346,7 @@ class Graph:
             if e == 1:
                 return self.add_vertex()
             else:
-                return [self.add_vertex() for _i in xrange(e)]
+                return [self.add_vertex() for _i in range(e)]
 
         self.add_edge(*e)
 
@@ -601,17 +601,6 @@ class Graph:
         self.add_edge(y, z)
         self.remove_edge(x, y)
         return z
-
-    def is_connected(self):
-        N = len(self.vertices)
-        n_connected_vertices = 1
-        V = set()
-        v = random.sample(self.vertices, 1)
-        V |= self.neighbors[v]
-        while V:
-            u = V.pop()
-            n_connected_vertices += 1
-            V |= self.neighbors[u]
 
 
     def is_complete(self, v_list = None):

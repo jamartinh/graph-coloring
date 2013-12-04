@@ -12,7 +12,7 @@
 from coloring_tools import is_2colorable
 # from planegraphs import set_copy
 from itertools import combinations
-
+import networkx as nx
 
 # constant
 UNDETERMINED = 3
@@ -23,10 +23,10 @@ Operation_Codes = {'K4': 'A complete graph on 4 vertices',
                    'K112': 'A diamond graph',
                    'T31': 'A T_{31} sub graph',
                    'C4': 'a square subraph, a cycle of length four',
-                   'K3 Free': 'The graph is trangle free',
+                   'K3 Free': 'The graph is triangle free',
                    'NOTP': 'The graph is not planar',
                    'MAXP': 'maximal planar graph',
-                   'E': 'A contraction due to a simple non-edge is implicit identity',
+                   'E': 'A contraction due to a simple non-edge is an implicit identity',
                    'SYM': ' contraction due to a vertex neighborhood subsumtion'
                     }
 
@@ -45,7 +45,7 @@ def decode_operation(O, prefix = '', recursive_level = 1):
     elif op == 'SYM':
         return prefix + 'SYM ' + str(tuple(sorted(O[1]))) + '\n'
     elif op == 'T31':
-        return prefix + 'T31 ' + str(tuple(sorted(O[1]))) + ' ;' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN SUB T31\n' + '  ' * (recursive_level + 1) + 'TRY CONTRACTION ' + (O[2][0], O[2][3]) + '\n' + UNCOL_witness(O[3], ' ', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
+        return prefix + 'T31 ' + str(tuple(sorted(O[1]))) + ' ;' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN SUB T31\n' + '  ' * (recursive_level + 1) + 'TRY CONTRACTION ' + str((O[2][0], O[2][3])) + '\n' + UNCOL_witness(O[3], ' ', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
     elif op == 'C4':
         return prefix + 'C4: ' + str(sorted(O[1])) + ' ' + str(sorted(O[2])) + '\n' + '  ' * recursive_level + 'BEGIN SUB C4\n' + UNCOL_witness(O[3], ' ', recursive_level + 1) + '\n' + '  ' * recursive_level + 'END\n'
     elif op == 'E':
@@ -66,8 +66,6 @@ def UNCOL_witness(P, prefix = '', recursive_level = 1):
 
 
 def COL_witness(G, P = None):
-    if P: return UNCOL_witness(P)
-
     C = dict()
     for color, v in enumerate(G.identities.iterkeys(), 1):
         C[color] = sorted(G.identities[v])
@@ -85,6 +83,80 @@ def COL_witness(G, P = None):
 # Begining of the Algorithm
 #-------------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------
+# Functions to handle degenerate cases such as:
+# 1. Multiple components
+# 2. Vertices of degree(v) < 3
+#------------------------------------------------------------------------------
+
+def filter_deg_vertices(G):
+    """
+    Remove vertices of degree <3 from G.
+    """
+    v_list = list()
+    H = G.copy()
+    deg = H.degree
+    while len(H):
+        u = min(H.vertices, key = deg)
+        if deg(u) > 2: break
+        v_list.append(u)
+        H.remove_vertex(u)
+
+    return G, H, v_list
+
+def from_nx_graph(G):
+    """
+    Convert a graph from networkx graph to a custom class
+    """
+
+    from planegraphs import Graph
+    H = Graph()
+    for v in G: H.add_named_vertex(v)
+    for u, v in G.edges_iter(): H.add_edge(u, v)
+
+    return H
+
+def to_nx_graph(G):
+    return nx.from_edgelist(G.edges)
+
+
+def get_components(G):
+    """
+    Return a list of the connected components of a graph G in custom format 
+    """
+
+
+    if nx.is_connected(G): return [from_nx_graph(G)]
+
+    H_list = list()
+    for cc in nx.connected_component_subgraphs(G):
+        H_list.append(from_nx_graph(cc))
+
+    return H_list
+
+
+def combine_colored_components(G_list):
+    # first get the graph with the maximum number of colors
+    G_list = sorted(G_list, key = lambda Gi: len(Gi.vertices))
+    G = G_list.pop()
+    for H in G_list:
+        for u, v in zip(G, H):
+            G[u].identities |= H[v].identities
+    return G
+
+
+def restore_low_degree_vertices(G, colored_G, v_list):
+    N = G.neighbors
+    for u in v_list:
+        for v in colored_G:
+            if N[u] & colored_G[v].identities == set({}):
+                colored_G[v].identities.add(u)
+
+    return colored_G
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 
 def find_T31(G):
     """ iterate over tadpole subgraphs $T_{3,1}$
@@ -346,7 +418,6 @@ def planar_3COL(G, alpha = 1):
 
     return UNDETERMINED, G_out, dict()
 
-
 #-----------------------------------------------------------------------------------------------
 
 def general_3COL(G, alpha = 1):
@@ -389,20 +460,54 @@ def general_3COL(G, alpha = 1):
 #-----------------------------------------------------------------------------------------------
 # automatic algorithms
 #-----------------------------------------------------------------------------------------------
+
+
+
+def incremental_depth_3COL(G, max_alpha = 10, col_fun = general_3COL):
+    G0, H0, v_list = filter_deg_vertices(G)
+    # print "filter by degree", len(v_list)
+
+    G = H0.copy()
+
+
+    H = [Hi for Hi in get_components(to_nx_graph(G)) ]
+    Q = [None for _i in range(len(H))]
+    P = [None for _i in range(len(H))]
+    n_components = len(H)
+    # print "n_components", n_components
+    unsolved_components = range(n_components)
+    top_alpha = 0
+    for alpha in range(max_alpha + 1):
+        for i in unsolved_components:
+            Q[i], H[i], P[i] = col_fun(H[i].copy(), alpha)
+
+            # if some component is not 3-colorable return its respective witness, thats enough.
+            if Q[i] == 0: return Q[i], H[i], P[i], alpha
+
+            # if some component gets properly colored, drop it from the processing list
+            # also chek if this is the highest alpha of all components and update top_alpha
+            if Q[i] == 1:
+                unsolved_components.remove(i)
+                top_alpha = max(alpha, top_alpha)
+                break
+
+            # otherwise continue until solving all components
+
+        # now check if all components are solved
+        # if all components are already colored then build complete coloring representation.
+        if len(unsolved_components) == 0:
+            H = combine_colored_components(H)
+            H = restore_low_degree_vertices(G0, H, v_list)
+            return 1, H, None, top_alpha
+
+
+
+
+    return UNDETERMINED, G, dict(), max_alpha + 1
+
+
 def incremental_depth_planar_3COL(G, max_alpha = 10):
-    for alpha in range(max_alpha + 1):
-        Q, G, P = planar_3COL(G.copy(), alpha)
-        if Q in (0, 1): return Q, G, P, alpha
-
-    return UNDETERMINED, G, dict(), max_alpha + 1
-
-
-def incremental_depth_3COL(G, max_alpha = 10):
-    for alpha in range(max_alpha + 1):
-        Q, G, P = general_3COL(G.copy(), alpha)
-        if Q in (0, 1): return Q, G, P, alpha
-
-    return UNDETERMINED, G, dict(), max_alpha + 1
+    return incremental_depth_3COL(G, max_alpha, col_fun = planar_3COL)
 
 
 

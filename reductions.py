@@ -403,12 +403,12 @@ def reduce_kcol_to_3col(G, k):
     """
 
     G, H = prepare_grid(G)
-    print "grid prepared"
+    print("grid prepared")
     N = len(G)
     H = create_kgrid(H, N, k)
-    print "grid created"
+    print("grid created")
     H = add_pheripherals_per_edge(G.edges, H, k)
-    print "peripherals added"
+    print("peripherals added")
 
     return H
 
@@ -484,12 +484,12 @@ def main2():
     # G = load_from_edge_list_named('graphskcolor/dsjc250.5.col')
     # H = reduce_kcol_to_3col(G, k)
     H = reduction_from_kcol_to_3col(G, 4)
-    print "reduction done"
-    print len(H)
-    print len(H.edges)
+    print("reduction done")
+    print(len(H))
+    print(len(H.edges))
     # for e in H.edges:        print e
     for v in H.vertices:
-        print v
+        print(v)
     # Q, H, P, alpha = incremental_deep_3COL(H, max_alpha = 2)
     # print 'is', k, 'colorable?', bool(Q)
 

@@ -8,8 +8,8 @@
 # Contributors:
 #     Jose Antonio Martin H. (jamartinh@fdi.ucm.es) - initial API and implementation
 #-------------------------------------------------------------------------------
-# import pyximport
-# pyximport.install(pyimport = True)
+#import pyximport
+#pyximport.install(pyimport = True)
 
 import graphio as gio
 import reduce3col as r3
@@ -17,7 +17,11 @@ import sys
 import testutil as tu
 import time
 
+
 #-----------------------------------------------------------------------------------------------
+
+#from numba import autojit
+
 
 def main(strFileName, alpha = 5):
     print " *** Starting *** "
@@ -35,6 +39,8 @@ def main(strFileName, alpha = 5):
         witness = r3.COL_witness(G, P)
 
     tu.save_witness("", Q, witness, "", strFileName)
+
+
 
 
 def main2(strFileName, alpha = 5):
@@ -60,8 +66,12 @@ if __name__ == "__main__":
     if len(sys.argv) == 3: main(sys.argv[1], int(sys.argv[2]))
     if len(sys.argv) == 4: main2(sys.argv[1], int(sys.argv[2]))
     elif len(sys.argv) == 2: main(sys.argv[1])
-# main("kinstances/IF.col", 5)
+
+#main("kinstances/IF.col", 5)
+#main("kinstances/frucht.col.txt", 5)
 # main("to_3coloring_uf50-0955.cnf.col", 5)
-# main("to_3coloring_IF.col", 5)
+#main("to_3coloring_IF.col", 5)
 # main("kinstances/planar_IF.col", 2)
-# main("kinstances/1-insertions_4.col", 2)
+#main("kinstances/1-insertions_4.col", 5)
+#main("kinstances/1-insertions_6.col", 5)
+main("hardinstances/gr6.txt", 5)
