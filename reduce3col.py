@@ -9,8 +9,8 @@
 #     Jose Antonio Martin H. (jamartinh@fdi.ucm.es) - initial API and implementation
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
-from coloring_tools import is_2colorable
-# from planegraphs import set_copy
+from coloring_tools import is_2colorable, greedy_coloring
+from planegraphs import Graph
 from itertools import combinations
 import networkx as nx
 
@@ -27,7 +27,8 @@ Operation_Codes = {'K4': 'A complete graph on 4 vertices',
                    'NOTP': 'The graph is not planar',
                    'MAXP': 'maximal planar graph',
                    'E': 'A contraction due to a simple non-edge is an implicit identity',
-                   'SYM': ' contraction due to a vertex neighborhood subsumtion'
+                   'SYM': ' contraction due to a vertex neighborhood subsumtion',
+                   'DEG': ' All vertices are of degree lees than 3, please use a simpler algorithm'
                     }
 
 
@@ -96,12 +97,13 @@ def filter_deg_vertices(G):
     v_list = list()
     H = G.copy()
     deg = H.degree
-    while len(H):
+    while len(H)>1:
         u = min(H.vertices, key = deg)
         if deg(u) > 2: break
         v_list.append(u)
         H.remove_vertex(u)
 
+    v_list.reverse()
     return G, H, v_list
 
 def from_nx_graph(G):
@@ -117,6 +119,7 @@ def from_nx_graph(G):
     return H
 
 def to_nx_graph(G):
+    print G.edges
     return nx.from_edgelist(G.edges)
 
 
@@ -141,16 +144,23 @@ def combine_colored_components(G_list):
     G = G_list.pop()
     for H in G_list:
         for u, v in zip(G, H):
-            G[u].identities |= H[v].identities
+            G.identities[u] |= H.identities[v]
     return G
 
 
 def restore_low_degree_vertices(G, colored_G, v_list):
     N = G.neighbors
+    print v_list
     for u in v_list:
         for v in colored_G:
-            if N[u] & colored_G[v].identities == set({}):
-                colored_G[v].identities.add(u)
+            if N[u] & colored_G.identities[v] == set({}):
+                colored_G.identities[v].add(u)
+                #print "adding vertex %d to set %d "%(u,v)
+                break
+        else:
+            if u not in colored_G.vertices:
+                colored_G.add_named_vertex(u)
+
 
     return colored_G
 
@@ -465,7 +475,16 @@ def general_3COL(G, alpha = 1):
 
 def incremental_depth_3COL(G, max_alpha = 10, col_fun = general_3COL):
     G0, H0, v_list = filter_deg_vertices(G)
-    # print "filter by degree", len(v_list)
+
+
+    if len(H0) <= 2:
+        #colored_G = Graph()
+        #colored_G.add_named_vertex(v_list.pop(0))
+        H = restore_low_degree_vertices(G0, H0, v_list)
+
+        return 1, H, None, 0
+
+
 
     G = H0.copy()
 
