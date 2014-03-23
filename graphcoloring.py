@@ -26,7 +26,8 @@ import time
 def main(strFileName, alpha = 5):
     print " *** Starting *** "
     G = gio.load_from_edge_list_named(strFileName)
-
+   
+    
     V, E, avgdeg = G.order(), G.size(), G.avg_degree()
     t1 = time.clock()
     Q, G, P, max_alpha = r3.incremental_depth_3COL(G, alpha)
@@ -73,5 +74,5 @@ if __name__ == "__main__":
 #main("to_3coloring_IF.col", 5)
 # main("kinstances/planar_IF.col", 2)
 #main("kinstances/1-insertions_4.col", 5)
-#main("kinstances/1-insertions_6.col", 5)
-main("hardinstances/gr6.txt", 5)
+main("kinstances/gc_20_1.col-1.txt", 5)
+#main("hardinstances/gr6.txt", 5)

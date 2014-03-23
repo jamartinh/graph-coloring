@@ -4,7 +4,7 @@
 # are made available under the terms of the GNU Public License v3.0
 # which accompanies this distribution, and is available at
 # http://www.gnu.org/licenses/gpl.html
-# 
+#
 # Contributors:
 #     Jose Antonio Martin H. (jamartinh@fdi.ucm.es) - initial API and implementation
 #-------------------------------------------------------------------------------
@@ -22,7 +22,7 @@ A clause is represented as a list of integers from 1 to N
 where 1 means the variable x_1 and -1 means the negation of variable x_1,
 e.g. [-1,2,-4] is (not x_1, x_2, not x_4)
 
-to copy an instance use map(list,instance) to obtain a fast deepcopy
+to copy an instance use map(list,instance) to obtaon a fast deepcopy
 
 """
 
@@ -170,7 +170,7 @@ def main():
             yes += 1
         else:
             no += 1
-        print "solucion", Q, t2 - t1
+        print("solucion", Q, t2 - t1)
 
         # print s
         # G = reduce_3sat_to_3col(instance)
@@ -178,7 +178,7 @@ def main():
         # print G.vertices
         # print G.edges
         # DrawMyGraph(G)
-    print "totals", yes, no, (yes / float(TOP)) * 100, "%"
+    print("totals", yes, no, (yes / float(TOP)) * 100, "%")
 
 
 
